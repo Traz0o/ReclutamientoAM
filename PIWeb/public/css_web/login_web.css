@@ -1,0 +1,113 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #E8F2FC;
+      font-family: Arial, sans-serif;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 8px 32px rgba(11, 61, 145, 0.12);
+    }
+
+    h1 {
+      font-size: 22px;
+      color: #0B3D91;
+      margin-bottom: 6px;
+    }
+
+    p.sub {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 1.75rem;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: bold;
+      color: #185FA5;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #B5D4F4;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 1.1rem;
+    }
+
+    input:focus {
+      border-color: #185FA5;
+      box-shadow: 0 0 0 3px rgba(24, 95, 165, 0.1);
+    }
+
+    .pw-wrap {
+      position: relative;
+    }
+
+    .pw-wrap input {
+      padding-right: 42px;
+      margin-bottom: 0;
+    }
+
+    .pw-wrap button {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #185FA5;
+      font-size: 13px;
+    }
+
+    .space {
+      text-align: right;
+      margin: 6px 0 1.5rem;
+    }
+
+    .forgot a {
+      font-size: 13px;
+      color: #185FA5;
+      text-decoration: none;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: #0B3D91;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: #185FA5; }
+
+    .register {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .register a {
+      color: #185FA5;
+      font-weight: bold;
+      text-decoration: none;
+    }
