@@ -19,10 +19,18 @@ export default function DashboardScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Dashboard</Text>
-      <TouchableOpacity style={styles.button} onPress={handleLogout}>
-        <Text style={styles.buttonText}>Cerrar sesión</Text>
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.welcomeCard}>
+        <Text style={styles.welcomeTitle}>Hola, Usuario</Text>
+        <Text style={styles.welcomeMessage}>
+          Se han abierto nuevas vacantes a las que eres elegible. Revisa la sección de Vacantes para más detalles.
+        </Text>
+      </View>
     </View>
   );
 }

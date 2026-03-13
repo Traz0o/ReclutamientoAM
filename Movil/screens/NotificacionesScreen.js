@@ -11,7 +11,7 @@ export default function NotificacionesScreen(){
       </View>
 
       <View style={styles.notification}>
-        <Text>Tu postulación fue recibida</Text>
+        <Text>Tu solicitud fue recibida</Text>
       </View>
 
     </View>
