@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const form = document.getElementById('loginForm');
     const msg =  document.getElementById('msg');
 
-    form.addEventListener('submit', async(e)=>{
+    document.getElementById('loginBtn').addEventListener('click', async(e)=>{
         e.preventDefault();
         msg.textContent = '';
         const email = document.getElementById('email').value.trim();
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded',()=>{
                 headers:{'Accept':'application/json',
                          'Content-Type':'application/json'
                         },
-                body:JSON.stringify({email,contrasena})
+                body: JSON.stringify({ email, password: contrasena })
             });
 
             const data = await res.json();
