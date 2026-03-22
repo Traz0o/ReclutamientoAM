@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             }
 
             localStorage.setItem('token', data.token);
-            window.location.href='/dashboard.html';
+            window.location.href='dashboard.html';
         }catch(err){
             msg.textContent='Error: ' + err.message;
         }
