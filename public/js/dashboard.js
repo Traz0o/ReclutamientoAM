@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
     const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/login.html'; return; }
+    if (!token) { window.location.href = 'login.html'; return; }
 
     const welcome                  = document.getElementById('welcome');
     const logoutBtn                = document.getElementById('logoutBtn');
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (res.status === 401) {
             localStorage.removeItem('token');
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
         }
 
         if (res.status === 204) return { ok: true, data: null };
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (_) {}
 
         localStorage.removeItem('token');
-        window.location.href = '/login.html';
+        window.location.href = 'login.html';
     }
 
     logoutBtn.addEventListener('click', handleLogout);
