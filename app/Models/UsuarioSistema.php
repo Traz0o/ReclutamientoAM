@@ -9,6 +9,7 @@ class UsuarioSistema extends Authenticatable
 {
     use HasApiTokens;
 
+    protected $connection = 'pgsql';
     protected $table = 'usuarios_sistema';
     protected $primaryKey = 'id_usuario';
     public $timestamps = false;
