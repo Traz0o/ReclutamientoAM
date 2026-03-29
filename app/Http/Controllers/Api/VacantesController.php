@@ -757,14 +757,18 @@ private function evaluarInternosAutomatico(int $idVacante, int $idArea): void
 
     DB::beginTransaction();
     try {
-        // Eliminar en orden para respetar FKs
         $postulaciones = DB::table('postulaciones')
             ->where('id_vacante', $id)
             ->pluck('id_postulacion');
 
+        // Obtener IDs de evaluaciones antes de borrarlas
+        $evaluaciones = DB::table('evaluacion_entrevista')
+            ->whereIn('id_postulacion', $postulaciones)
+            ->pluck('id_evaluacion');
+
         // Eliminar detalles de evaluación
         DB::table('detalle_evaluacion_entrevista')
-            ->whereIn('id_postulacion', $postulaciones)
+            ->whereIn('id_evaluacion', $evaluaciones)
             ->delete();
 
         // Eliminar evaluaciones de entrevista
@@ -775,15 +779,6 @@ private function evaluarInternosAutomatico(int $idVacante, int $idArea): void
         // Eliminar postulaciones
         DB::table('postulaciones')
             ->where('id_vacante', $id)
-            ->delete();
-
-        // Eliminar detalles de evaluación por requisito
-        $requisitos = DB::table('requisitos_vacante')
-            ->where('id_vacante', $id)
-            ->pluck('id_requisito');
-
-        DB::table('detalle_evaluacion_entrevista')
-            ->whereIn('id_requisito', $requisitos)
             ->delete();
 
         // Eliminar requisitos
