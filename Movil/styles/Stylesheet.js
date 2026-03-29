@@ -22,7 +22,7 @@ export const loginStyles = StyleSheet.create({
     marginBottom: 15
   },
   button: {
-    backgroundColor: colors.secondary,
+    backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
