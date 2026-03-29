@@ -471,4 +471,24 @@ class PostulacionesController extends Controller
 
         return [round($puntaje, 2), $descartado, $detalles];
     }
+
+    public function respuestaEmpleado(Request $request, $id){
+        $data = $request->validate([
+            'acepta' => 'required|boolean',
+        ]);
+
+        $postulacion = \App\Models\Postulacion::findOrFail($id);
+
+        $nuevoEstatus = $data['acepta'] ? 'En revisión' : 'Descartado';
+
+        $idEstatus = DB::table('cat_estatus_postulacion')
+            ->where('nombre', $nuevoEstatus)
+            ->value('id_estatus_postulacion');
+
+        $postulacion->id_estatus_postulacion = $idEstatus;
+        $postulacion->fecha_ultimo_cambio = now();
+        $postulacion->save();
+
+        return response()->json(['ok' => true, 'estatus' => $nuevoEstatus]);
+    }
 }
