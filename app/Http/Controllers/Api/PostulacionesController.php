@@ -472,7 +472,8 @@ class PostulacionesController extends Controller
         return [round($puntaje, 2), $descartado, $detalles];
     }
 
-    public function respuestaEmpleado(Request $request, $id){
+    public function respuestaEmpleado(Request $request, $id)
+    {
         $data = $request->validate([
             'acepta' => 'required|boolean',
         ]);
@@ -490,5 +491,27 @@ class PostulacionesController extends Controller
         $postulacion->save();
 
         return response()->json(['ok' => true, 'estatus' => $nuevoEstatus]);
+    }
+
+    public function actualizarEstatus(Request $request, $id)
+    {
+        $data = $request->validate([
+            'nombre_estatus' => 'required|string'
+        ]);
+
+        $estatus = DB::table('cat_estatus_postulacion')
+            ->where('nombre', $data['nombre_estatus'])
+            ->first();
+
+        if (!$estatus) {
+            return response()->json(['message' => 'Estatus no válido.'], 422);
+        }
+
+        $postulacion = Postulacion::findOrFail($id);
+        $postulacion->id_estatus_postulacion = $estatus->id_estatus_postulacion;
+        $postulacion->fecha_ultimo_cambio = now();
+        $postulacion->save();
+
+        return response()->json(['ok' => true, 'nombre_estatus' => $estatus->nombre]);
     }
 }

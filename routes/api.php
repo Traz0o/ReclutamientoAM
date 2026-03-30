@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/evaluaciones-entrevista', [EvaluacionesEntrevistaController::class, 'store']);
     Route::get('/evaluaciones-entrevista/{id}', [EvaluacionesEntrevistaController::class, 'show']);
     Route::get('/postulaciones/{id}', [PostulacionesController::class, 'show']);
+    Route::patch('/postulaciones/{id}/estatus', [PostulacionesController::class, 'actualizarEstatus']);
     Route::post('/postulaciones', [PostulacionesController::class, 'store']);
     Route::get('/graficas', [VacantesController::class, 'graficas']);
     Route::get('/vacantes/{id}/graficas', [VacantesController::class, 'graficasVacante']);

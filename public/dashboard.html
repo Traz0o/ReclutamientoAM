@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aptior — Dashboard</title>
   <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/vacantes.css" />
 </head>
 
 <body>
@@ -30,7 +31,7 @@
       </div>
       <div class="header-user">
         <p class="muted" id="welcome">Cargando usuario...</p>
-        <button id="logoutBtnHeader" class="btn-logout">Cerrar sesión</button>
+        <button id="logoutBtnHeader" class="btn btn-secondary btn-sm">Cerrar sesión</button>
       </div>
     </header>
 
@@ -39,11 +40,12 @@
       <section>
         <h2>Accesos directos</h2>
         <div class="shortcuts">
-          <button class="btn-shortcut btn-primary" onclick="window.location.href='/crear-vacante.html'">
+          <button class="btn-shortcut btn-primary"
+            onclick="window.location.href='crear-vacante.html'">
             + Nueva vacante
           </button>
           <button id="btnCandidatosPendientes" class="btn-shortcut btn-secondary"
-            onclick="window.location.href='/candidatos-externos.html'">
+            onclick="window.location.href='candidatos-externos.html'">
             Candidatos externos pendientes (<span id="numCandidatosPendientes">...</span>)
           </button>
         </div>
@@ -56,15 +58,15 @@
             <div class="num" id="kpiVacantes">#</div>
             <div class="label">Vacantes activas</div>
           </div>
-          <div class="card" style="border-top-color: #38A169;">
+          <div class="card" style="border-top-color:#38A169;">
             <div class="num" id="kpiPostulantes">#</div>
             <div class="label">Postulantes totales</div>
           </div>
-          <div class="card" style="border-top-color: #DD6B20;">
+          <div class="card" style="border-top-color:#DD6B20;">
             <div class="num" id="kpiEntrevistas">#</div>
             <div class="label">Entrevistas pendientes</div>
           </div>
-          <div class="card" style="border-top-color: #718096;">
+          <div class="card" style="border-top-color:#718096;">
             <div class="num" id="kpiCerradas">#</div>
             <div class="label">Vacantes cerradas este mes</div>
           </div>
@@ -89,7 +91,6 @@
         </div>
       </section>
 
-
       <section>
         <h2>Vacantes recientes</h2>
         <div class="table-wrap">
@@ -104,15 +105,75 @@
                 <th>Acciones</th>
               </tr>
             </thead>
-            <tbody id="tbodyVacantes">
-            </tbody>
+            <tbody id="tbodyVacantes"></tbody>
           </table>
         </div>
       </section>
+
+      <section id="alertasSection">
+        <h2>Alertas</h2>
+        <div id="alertasContainer"></div>
+      </section>
+
     </div>
   </div>
 
-  <script src="js/dashboard.js"></script>
+  <!-- MODAL DETALLE VACANTE -->
+  <div id="modal" class="modal-overlay">
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <h2 id="modal-title">Detalle de vacante</h2>
+      <button id="modalCloseBtn" class="btn btn-secondary btn-sm">✕ Cerrar</button>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="tab active" data-tab="info">Información</button>
+      <button class="tab" data-tab="ranking">Ranking</button>
+    </div>
+
+    <div id="tab-info" class="tab-panel active">
+      <div class="detail-grid">
+        <div><strong>Área:</strong> <span id="d-area">—</span></div>
+        <div><strong>Tipo contrato:</strong> <span id="d-contrato">—</span></div>
+        <div><strong>Fecha cierre:</strong> <span id="d-fecha">—</span></div>
+        <div><strong>Salario:</strong> <span id="d-salario">—</span></div>
+        <div><strong>Postulantes:</strong> <span id="d-post">—</span></div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <strong>Requisitos:</strong>
+        <div id="d-reqs" style="margin-top:8px;"></div>
+      </div>
+
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+        <a id="btnVerCompleto" href="#" class="btn btn-primary btn-sm">
+          Ver detalle completo →
+        </a>
+      </div>
+    </div>
+
+    <div id="tab-ranking" class="tab-panel">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-pos">#</th>
+              <th>Candidato</th>
+              <th>Puntaje final</th>
+              <th>Automático</th>
+              <th>Entrevista</th>
+              <th>Estatus</th>
+            </tr>
+          </thead>
+          <tbody id="ranking-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
