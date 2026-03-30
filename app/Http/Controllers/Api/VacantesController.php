@@ -12,18 +12,20 @@ use App\Models\Postulacion;
 
 class VacantesController extends Controller
 {
-     private int $_postulacionesCreadas = 0;
+    private int $_postulacionesCreadas = 0;
 
     public function index(Request $request)
     {
         $query = Vacante::with('estatus')
-        ->withCount(['postulaciones' => function ($q) {
-            $idDescartado = DB::table('cat_estatus_postulacion')
-                ->where('nombre', 'Descartado')
-                ->value('id_estatus_postulacion');
-            $q->where('id_estatus_postulacion', '!=', $idDescartado);
-        }])
-        ->orderByDesc('fecha_creacion');
+            ->withCount([
+                'postulaciones' => function ($q) {
+                    $idDescartado = DB::table('cat_estatus_postulacion')
+                        ->where('nombre', 'Descartado')
+                        ->value('id_estatus_postulacion');
+                    $q->where('id_estatus_postulacion', '!=', $idDescartado);
+                }
+            ])
+            ->orderByDesc('fecha_creacion');
 
         if ($request->has('limit')) {
             $query->limit($request->limit);
@@ -43,7 +45,9 @@ class VacantesController extends Controller
                 'titulo' => $v->titulo,
                 'nombre_area' => $area?->nombre_area ?? '—',
                 'nombre_estatus' => $v->estatus?->nombre ?? '—',
-                'total_postulantes' => $v->postulaciones()->where('id_estatus_postulacion', '!=', 
+                'total_postulantes' => $v->postulaciones()->where(
+                    'id_estatus_postulacion',
+                    '!=',
                     DB::table('cat_estatus_postulacion')->where('nombre', 'Descartado')->value('id_estatus_postulacion')
                 )->count(),
                 'fecha_cierre' => $v->fecha_cierre,
@@ -55,197 +59,201 @@ class VacantesController extends Controller
     }
 
     public function show($id)
-{
-    $v = Vacante::with(['estatus', 'requisitos.tipo'])->findOrFail($id);
+    {
+        $v = Vacante::with(['estatus', 'requisitos.tipo'])->findOrFail($id);
 
-    $area = null;
-    $tipoContrato = null;
+        $area = null;
+        $tipoContrato = null;
 
-    if ($v->id_area) {
-        $area = DB::connection('mysql_empleados')
-            ->table('areas')
-            ->where('id_area', $v->id_area)
-            ->first();
+        if ($v->id_area) {
+            $area = DB::connection('mysql_empleados')
+                ->table('areas')
+                ->where('id_area', $v->id_area)
+                ->first();
 
-        // Obtener tipo de contrato más común entre empleados del área
-        $tipoContrato = DB::connection('mysql_empleados')
-            ->table('empleados')
-            ->join('cat_tipos_contrato', 'empleados.id_tipo_contrato', '=', 'cat_tipos_contrato.id_tipo_contrato')
-            ->where('empleados.id_area', $v->id_area)
-            ->where('empleados.id_estatus_empleado', 1)
-            ->select('cat_tipos_contrato.nombre', DB::raw('COUNT(*) as total'))
-            ->groupBy('cat_tipos_contrato.nombre')
-            ->orderByDesc('total')
-            ->value('nombre');
-    }
-
-    return response()->json([
-        'id_vacante'             => $v->id_vacante,
-        'titulo'                 => $v->titulo,
-        'descripcion'            => $v->descripcion,
-        'salario' => $v->salario ?? null,
-        'nombre_area'            => $area?->nombre_area ?? '—',
-        'nombre_estatus'         => $v->estatus?->nombre ?? '—',
-        'nombre_tipo_contrato'   => $tipoContrato ?? '—',  
-        'fecha_creacion'         => $v->fecha_creacion,
-        'fecha_cierre'           => $v->fecha_cierre,
-        'fecha_apertura_externa' => $v->fecha_apertura_externa,
-        'total_postulantes' => $v->postulaciones()
-        ->whereHas('estatus', fn($q) => $q->where('nombre', '!=', 'Descartado'))
-        ->count(),
-        'externos_recibidos'     => $v->postulaciones()->where('id_tipo_candidato', 2)->count(),
-        'externos_pendientes'    => $v->postulaciones()->where('id_tipo_candidato', 2)->where('id_estatus_postulacion', 1)->count(),
-        'idDepa'                 => $v->id_area,
-        'requisitos'             => $v->requisitos->map(fn($r) => [
-            'id_requisito' => $r->id_requisito,
-            'id_tipo_requisito' => $r->id_tipo_requisito,
-            'descripcion'  => $r->descripcion,
-            'nombre_tipo'  => $r->tipo?->nombre ?? '—',
-            'peso_pct'     => $r->peso_pct,
-            'valor_minimo' => $r->valor_minimo,
-            'valor_ideal'  => $r->valor_ideal,
-            'es_excluyente'=> $r->es_excluyente,
-        ]),
-    ]);
-}
-
-    public function store(Request $request)
-{
-    $data = $request->validate([
-        'titulo'                 => 'required|string|max:100',
-        'id_area'                => 'nullable|integer',
-        'descripcion'            => 'nullable|string',
-        'salario' =>            'nullable|string|max:100',
-        'fecha_apertura_interna' => 'nullable|date',
-        'fecha_cierre'           => 'nullable|date',
-        'requisitos'             => 'nullable|array',
-        'requisitos.*.id_tipo_requisito' => 'required|integer',
-        'requisitos.*.descripcion'       => 'nullable|string|max:200',
-        'requisitos.*.valor_minimo'      => 'nullable|string|max:100',
-        'requisitos.*.valor_ideal'       => 'nullable|string|max:100',
-        'requisitos.*.peso_pct'          => 'nullable|numeric',
-        'requisitos.*.es_excluyente'     => 'nullable|boolean',
-    ]);
-
-    DB::beginTransaction();
-    try {
-        $idEstatusActiva = DB::table('cat_estatus_vacante')
-            ->where('nombre', 'Activa')->value('id_estatus_vacante');
-
-        $vacante = \App\Models\Vacante::create([
-            'titulo'                 => $data['titulo'],
-            'id_area'                => $data['id_area'] ?? null,
-            'descripcion'            => $data['descripcion'] ?? null,
-            'salario'                => $data['salario'] ?? null,
-            'fecha_apertura_interna' => $data['fecha_apertura_interna'] ?? null,
-            'fecha_cierre'           => $data['fecha_cierre'] ?? null,
-            'id_estatus_vacante'     => $idEstatusActiva,
-            'fecha_creacion'         => now(),
-        ]);
-
-        $requisitosCreados = [];
-        foreach ($data['requisitos'] ?? [] as $req) {
-            $requisito = \App\Models\RequisitoVacante::create([
-                'id_vacante'        => $vacante->id_vacante,
-                'id_tipo_requisito' => $req['id_tipo_requisito'],
-                'descripcion'       => $req['descripcion'] ?? null,
-                'valor_minimo'      => $req['valor_minimo'] ?? null,
-                'valor_ideal'       => $req['valor_ideal'] ?? null,
-                'peso_pct'          => $req['peso_pct'] ?? 0,
-                'es_excluyente'     => $req['es_excluyente'] ?? false,
-            ]);
-            $requisitosCreados[] = $requisito;
-        }
-
-        DB::commit();
-
-        // Evaluar internos automáticamente en segundo plano
-        // Se hace después del commit para no bloquear la respuesta
-        if ($vacante->id_area && count($requisitosCreados) > 0) {
-            $this->evaluarInternosAutomatico($vacante->id_vacante, $vacante->id_area);
+            // Obtener tipo de contrato más común entre empleados del área
+            $tipoContrato = DB::connection('mysql_empleados')
+                ->table('empleados')
+                ->join('cat_tipos_contrato', 'empleados.id_tipo_contrato', '=', 'cat_tipos_contrato.id_tipo_contrato')
+                ->where('empleados.id_area', $v->id_area)
+                ->where('empleados.id_estatus_empleado', 1)
+                ->select('cat_tipos_contrato.nombre', DB::raw('COUNT(*) as total'))
+                ->groupBy('cat_tipos_contrato.nombre')
+                ->orderByDesc('total')
+                ->value('nombre');
         }
 
         return response()->json([
-            'id_vacante'           => $vacante->id_vacante,
-            'titulo'               => $vacante->titulo,
-            'postulaciones_creadas'=> $this->_postulacionesCreadas ?? 0,
-            'mensaje'              => 'Vacante creada y candidatos internos evaluados automáticamente.',
-        ], 201);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
+            'id_vacante' => $v->id_vacante,
+            'titulo' => $v->titulo,
+            'descripcion' => $v->descripcion,
+            'salario' => $v->salario ?? null,
+            'nombre_area' => $area?->nombre_area ?? '—',
+            'nombre_estatus' => $v->estatus?->nombre ?? '—',
+            'nombre_tipo_contrato' => $tipoContrato ?? '—',
+            'fecha_creacion' => $v->fecha_creacion,
+            'fecha_cierre' => $v->fecha_cierre,
+            'fecha_apertura_externa' => $v->fecha_apertura_externa,
+            'total_postulantes' => $v->postulaciones()
+                ->whereHas('estatus', fn($q) => $q->where('nombre', '!=', 'Descartado'))
+                ->count(),
+            'externos_recibidos' => $v->postulaciones()->where('id_tipo_candidato', 2)->count(),
+            'externos_pendientes' => $v->postulaciones()->where('id_tipo_candidato', 2)->where('id_estatus_postulacion', 1)->count(),
+            'idDepa' => $v->id_area,
+            'requisitos' => $v->requisitos->map(fn($r) => [
+                'id_requisito' => $r->id_requisito,
+                'id_tipo_requisito' => $r->id_tipo_requisito,
+                'descripcion' => $r->descripcion,
+                'nombre_tipo' => $r->tipo?->nombre ?? '—',
+                'peso_pct' => $r->peso_pct,
+                'valor_minimo' => $r->valor_minimo,
+                'valor_ideal' => $r->valor_ideal,
+                'es_excluyente' => $r->es_excluyente,
+            ]),
+        ]);
     }
-}
 
-// ── Evaluación automática de internos al crear vacante ────────────────────
-private function evaluarInternosAutomatico(int $idVacante, int $idArea): void
-{
-    // Obtener empleados activos del área
-    $empleados = DB::connection('mysql_empleados')
-        ->table('empleados')
-        ->where('id_area', $idArea)
-        ->where('id_estatus_empleado', 1) // 1 = Activo
-        ->get();
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'titulo' => 'required|string|max:100',
+            'id_area' => 'nullable|integer',
+            'descripcion' => 'nullable|string',
+            'salario' => 'nullable|string|max:100',
+            'fecha_apertura_interna' => 'nullable|date',
+            'fecha_cierre' => 'nullable|date',
+            'requisitos' => 'nullable|array',
+            'requisitos.*.id_tipo_requisito' => 'required|integer',
+            'requisitos.*.descripcion' => 'nullable|string|max:200',
+            'requisitos.*.valor_minimo' => 'nullable|string|max:100',
+            'requisitos.*.valor_ideal' => 'nullable|string|max:100',
+            'requisitos.*.peso_pct' => 'nullable|numeric',
+            'requisitos.*.es_excluyente' => 'nullable|boolean',
+        ]);
 
-    if ($empleados->isEmpty()) return;
-
-    // Cargar requisitos de la vacante
-    $requisitos = \App\Models\RequisitoVacante::with('tipo')
-        ->where('id_vacante', $idVacante)
-        ->get();
-
-    if ($requisitos->isEmpty()) return;
-
-    $idTipoInterno = DB::table('cat_tipos_candidato')
-        ->where('nombre', 'Interno')
-        ->value('id_tipo_candidato');
-
-    $idEstatusPendiente = DB::table('cat_estatus_postulacion')
-        ->where('nombre', 'Pendiente')
-        ->value('id_estatus_postulacion');
-
-    $postulacionesCreadas = 0;
-
-
-    foreach ($empleados as $empleado) {
+        DB::beginTransaction();
         try {
-            // Usar el mismo algoritmo de puntaje interno
-            [$puntaje, $descartado, $detalles] = $this->calcularPuntajeInterno(
-                $empleado->id_empleado,
-                $requisitos
-            );
+            $idEstatusActiva = DB::table('cat_estatus_vacante')
+                ->where('nombre', 'Activa')->value('id_estatus_vacante');
 
-            // Si no cumple excluyente — no registrar
-            if ($descartado) continue;
-
-            // Verificar que no esté ya postulado
-            $yaPostulado = \App\Models\Postulacion::where('id_vacante', $idVacante)
-                ->where('id_empleado', $empleado->id_empleado)
-                ->exists();
-
-            if ($yaPostulado) continue;
-
-            \App\Models\Postulacion::create([
-                'id_vacante'             => $idVacante,
-                'id_tipo_candidato'      => $idTipoInterno,
-                'id_empleado'            => $empleado->id_empleado,
-                'fecha_postulacion'      => now(),
-                'id_estatus_postulacion' => $idEstatusPendiente,
-                'puntaje_automatico'     => round($puntaje, 2),
-                'fecha_ultimo_cambio'    => now(),
+            $vacante = \App\Models\Vacante::create([
+                'titulo' => $data['titulo'],
+                'id_area' => $data['id_area'] ?? null,
+                'descripcion' => $data['descripcion'] ?? null,
+                'salario' => $data['salario'] ?? null,
+                'fecha_apertura_interna' => $data['fecha_apertura_interna'] ?? null,
+                'fecha_cierre' => $data['fecha_cierre'] ?? null,
+                'id_estatus_vacante' => $idEstatusActiva,
+                'fecha_creacion' => now(),
             ]);
 
-            $postulacionesCreadas++;
+            $requisitosCreados = [];
+            foreach ($data['requisitos'] ?? [] as $req) {
+                $requisito = \App\Models\RequisitoVacante::create([
+                    'id_vacante' => $vacante->id_vacante,
+                    'id_tipo_requisito' => $req['id_tipo_requisito'],
+                    'descripcion' => $req['descripcion'] ?? null,
+                    'valor_minimo' => $req['valor_minimo'] ?? null,
+                    'valor_ideal' => $req['valor_ideal'] ?? null,
+                    'peso_pct' => $req['peso_pct'] ?? 0,
+                    'es_excluyente' => $req['es_excluyente'] ?? false,
+                ]);
+                $requisitosCreados[] = $requisito;
+            }
+
+            DB::commit();
+
+            // Evaluar internos automáticamente en segundo plano
+            // Se hace después del commit para no bloquear la respuesta
+            if ($vacante->id_area && count($requisitosCreados) > 0) {
+                $this->evaluarInternosAutomatico($vacante->id_vacante, $vacante->id_area);
+            }
+
+            return response()->json([
+                'id_vacante' => $vacante->id_vacante,
+                'titulo' => $vacante->titulo,
+                'postulaciones_creadas' => $this->_postulacionesCreadas ?? 0,
+                'mensaje' => 'Vacante creada y candidatos internos evaluados automáticamente.',
+            ], 201);
 
         } catch (\Exception $e) {
-            // Si falla un empleado no detener el proceso completo
-            continue;
+            DB::rollBack();
+            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
-    $this->_postulacionesCreadas = $postulacionesCreadas;
-}
+    // ── Evaluación automática de internos al crear vacante ────────────────────
+    private function evaluarInternosAutomatico(int $idVacante, int $idArea): void
+    {
+        // Obtener empleados activos del área
+        $empleados = DB::connection('mysql_empleados')
+            ->table('empleados')
+            ->where('id_area', $idArea)
+            ->where('id_estatus_empleado', 1) // 1 = Activo
+            ->get();
+
+        if ($empleados->isEmpty())
+            return;
+
+        // Cargar requisitos de la vacante
+        $requisitos = \App\Models\RequisitoVacante::with('tipo')
+            ->where('id_vacante', $idVacante)
+            ->get();
+
+        if ($requisitos->isEmpty())
+            return;
+
+        $idTipoInterno = DB::table('cat_tipos_candidato')
+            ->where('nombre', 'Interno')
+            ->value('id_tipo_candidato');
+
+        $idEstatusPendiente = DB::table('cat_estatus_postulacion')
+            ->where('nombre', 'Pendiente')
+            ->value('id_estatus_postulacion');
+
+        $postulacionesCreadas = 0;
+
+
+        foreach ($empleados as $empleado) {
+            try {
+                // Usar el mismo algoritmo de puntaje interno
+                [$puntaje, $descartado, $detalles] = $this->calcularPuntajeInterno(
+                    $empleado->id_empleado,
+                    $requisitos
+                );
+
+                // Si no cumple excluyente — no registrar
+                if ($descartado)
+                    continue;
+
+                // Verificar que no esté ya postulado
+                $yaPostulado = \App\Models\Postulacion::where('id_vacante', $idVacante)
+                    ->where('id_empleado', $empleado->id_empleado)
+                    ->exists();
+
+                if ($yaPostulado)
+                    continue;
+
+                \App\Models\Postulacion::create([
+                    'id_vacante' => $idVacante,
+                    'id_tipo_candidato' => $idTipoInterno,
+                    'id_empleado' => $empleado->id_empleado,
+                    'fecha_postulacion' => now(),
+                    'id_estatus_postulacion' => $idEstatusPendiente,
+                    'puntaje_automatico' => round($puntaje, 2),
+                    'fecha_ultimo_cambio' => now(),
+                ]);
+
+                $postulacionesCreadas++;
+
+            } catch (\Exception $e) {
+                // Si falla un empleado no detener el proceso completo
+                continue;
+            }
+        }
+
+        $this->_postulacionesCreadas = $postulacionesCreadas;
+    }
 
 
     public function resumen()
@@ -293,8 +301,8 @@ private function evaluarInternosAutomatico(int $idVacante, int $idArea): void
     public function ranking($id)
     {
         $idDescartado = DB::table('cat_estatus_postulacion')
-        ->where('nombre', 'Descartado')
-        ->value('id_estatus_postulacion');
+            ->where('nombre', 'Descartado')
+            ->value('id_estatus_postulacion');
 
         $postulaciones = DB::table('postulaciones')
             ->where('postulaciones.id_vacante', $id)
@@ -385,45 +393,45 @@ private function evaluarInternosAutomatico(int $idVacante, int $idArea): void
     }
 
     public function graficasVacante($id)
-{
-    $idDescartado = DB::table('cat_estatus_postulacion')
-        ->where('nombre', 'Descartado')
-        ->value('id_estatus_postulacion');
+    {
+        $idDescartado = DB::table('cat_estatus_postulacion')
+            ->where('nombre', 'Descartado')
+            ->value('id_estatus_postulacion');
 
-    $postulaciones = DB::table('postulaciones')
-        ->leftJoin('candidatos_externos', 'postulaciones.id_candidato_externo', '=', 'candidatos_externos.id_candidato_externo')
-        ->where('postulaciones.id_vacante', $id)
-        ->where('postulaciones.id_estatus_postulacion', '!=', $idDescartado)
-        ->select(
-            'postulaciones.id_empleado',
-            'candidatos_externos.nombre as nombre_candidato',
-            'postulaciones.puntaje_automatico',
-            'postulaciones.puntaje_entrevista',
-            'postulaciones.puntaje_final'
-        )
-        ->orderByDesc('postulaciones.puntaje_final')
-        ->get()
-        ->map(function($p) {
-            $nombre = $p->nombre_candidato;
+        $postulaciones = DB::table('postulaciones')
+            ->leftJoin('candidatos_externos', 'postulaciones.id_candidato_externo', '=', 'candidatos_externos.id_candidato_externo')
+            ->where('postulaciones.id_vacante', $id)
+            ->where('postulaciones.id_estatus_postulacion', '!=', $idDescartado)
+            ->select(
+                'postulaciones.id_empleado',
+                'candidatos_externos.nombre as nombre_candidato',
+                'postulaciones.puntaje_automatico',
+                'postulaciones.puntaje_entrevista',
+                'postulaciones.puntaje_final'
+            )
+            ->orderByDesc('postulaciones.puntaje_final')
+            ->get()
+            ->map(function ($p) {
+                $nombre = $p->nombre_candidato;
 
-            if (!$nombre && $p->id_empleado) {
-                $empleado = DB::connection('mysql_empleados')
-                    ->table('empleados')
-                    ->where('id_empleado', $p->id_empleado)
-                    ->first();
-                $nombre = $empleado?->nombre ?? 'Interno';
-            }
+                if (!$nombre && $p->id_empleado) {
+                    $empleado = DB::connection('mysql_empleados')
+                        ->table('empleados')
+                        ->where('id_empleado', $p->id_empleado)
+                        ->first();
+                    $nombre = $empleado?->nombre ?? 'Interno';
+                }
 
-            return [
-                'nombre' => $nombre,
-                'puntaje_automatico' => (float) ($p->puntaje_automatico ?? 0),
-                'puntaje_entrevista' => (float) ($p->puntaje_entrevista ?? 0),
-                'puntaje_final' => (float) ($p->puntaje_final ?? 0),
-            ];
-        });
+                return [
+                    'nombre' => $nombre,
+                    'puntaje_automatico' => (float) ($p->puntaje_automatico ?? 0),
+                    'puntaje_entrevista' => (float) ($p->puntaje_entrevista ?? 0),
+                    'puntaje_final' => (float) ($p->puntaje_final ?? 0),
+                ];
+            });
 
-    return response()->json($postulaciones);
-}
+        return response()->json($postulaciones);
+    }
 
     public function update(Request $request, $id)
     {
@@ -691,112 +699,115 @@ private function evaluarInternosAutomatico(int $idVacante, int $idArea): void
 
     //devuelve solo las vacantes donde el empleado cumple los requisitos mínimos
     public function vacantesElegibles(Request $request)
-{
-    $idEmpleado = $request->query('id_empleado');
+    {
+        $idEmpleado = $request->query('id_empleado');
 
-    if (!$idEmpleado) {
-        return response()->json(['message' => 'id_empleado requerido'], 400);
-    }
-
-    $estatusValidos = DB::table('cat_estatus_vacante')
-    ->whereIn('nombre', ['Activa', 'En proceso'])
-    ->pluck('id_estatus_vacante');
-
-    $vacantes = Vacante::with('requisitos.tipo')
-        ->whereIn('id_estatus_vacante', $estatusValidos)
-        ->get();
-
-    $elegibles = [];
-
-    foreach ($vacantes as $v) {
-        if ($v->requisitos->isEmpty()) continue;
-
-        [$puntaje, $descartado, $detalles] = $this->calcularPuntajeInterno(
-            (int) $idEmpleado,
-            $v->requisitos
-        );
-
-        if ($descartado) continue;
-
-        $area = null;
-        if ($v->id_area) {
-            $area = DB::connection('mysql_empleados')
-                ->table('areas')
-                ->where('id_area', $v->id_area)
-                ->first();
+        if (!$idEmpleado) {
+            return response()->json(['message' => 'id_empleado requerido'], 400);
         }
 
-        $postulacion = \App\Models\Postulacion::where('id_vacante', $v->id_vacante)
-        ->where('id_empleado', $idEmpleado)
-        ->first();
+        $estatusValidos = DB::table('cat_estatus_vacante')
+            ->whereIn('nombre', ['Activa', 'En proceso'])
+            ->pluck('id_estatus_vacante');
 
-        $idDescartado = DB::table('cat_estatus_postulacion')
-        ->where('nombre', 'Descartado')
-        ->value('id_estatus_postulacion');
+        $vacantes = Vacante::with('requisitos.tipo')
+            ->whereIn('id_estatus_vacante', $estatusValidos)
+            ->get();
 
-        if ($postulacion && $postulacion->id_estatus_postulacion == $idDescartado) continue;
+        $elegibles = [];
 
-        $elegibles[] = [
-            'id_vacante'      => $v->id_vacante,
-            'titulo'          => $v->titulo,
-            'nombre_area'     => $area?->nombre_area ?? '—',
-            'fecha_cierre'    => $v->fecha_cierre,
-            'puntaje'         => $puntaje,
-            'id_postulacion'  => $postulacion?->id_postulacion,
-        ];
+        foreach ($vacantes as $v) {
+            if ($v->requisitos->isEmpty())
+                continue;
+
+            [$puntaje, $descartado, $detalles] = $this->calcularPuntajeInterno(
+                (int) $idEmpleado,
+                $v->requisitos
+            );
+
+            if ($descartado)
+                continue;
+
+            $area = null;
+            if ($v->id_area) {
+                $area = DB::connection('mysql_empleados')
+                    ->table('areas')
+                    ->where('id_area', $v->id_area)
+                    ->first();
+            }
+
+            $postulacion = \App\Models\Postulacion::where('id_vacante', $v->id_vacante)
+                ->where('id_empleado', $idEmpleado)
+                ->first();
+
+            $idDescartado = DB::table('cat_estatus_postulacion')
+                ->where('nombre', 'Descartado')
+                ->value('id_estatus_postulacion');
+
+            if ($postulacion && $postulacion->id_estatus_postulacion == $idDescartado)
+                continue;
+
+            $elegibles[] = [
+                'id_vacante' => $v->id_vacante,
+                'titulo' => $v->titulo,
+                'nombre_area' => $area?->nombre_area ?? '—',
+                'fecha_cierre' => $v->fecha_cierre,
+                'puntaje' => $puntaje,
+                'id_postulacion' => $postulacion?->id_postulacion,
+            ];
+        }
+
+        usort($elegibles, fn($a, $b) => $b['puntaje'] <=> $a['puntaje']);
+
+        return response()->json($elegibles);
     }
-
-    usort($elegibles, fn($a, $b) => $b['puntaje'] <=> $a['puntaje']);
-
-    return response()->json($elegibles);
-}
 
     public function destroy($id)
-{
-    $vacante = Vacante::findOrFail($id);
+    {
+        $vacante = Vacante::findOrFail($id);
 
-    DB::beginTransaction();
-    try {
-        $postulaciones = DB::table('postulaciones')
-            ->where('id_vacante', $id)
-            ->pluck('id_postulacion');
+        DB::beginTransaction();
+        try {
+            $postulaciones = DB::table('postulaciones')
+                ->where('id_vacante', $id)
+                ->pluck('id_postulacion');
 
-        // Obtener IDs de evaluaciones antes de borrarlas
-        $evaluaciones = DB::table('evaluacion_entrevista')
-            ->whereIn('id_postulacion', $postulaciones)
-            ->pluck('id_evaluacion');
+            // Obtener IDs de evaluaciones antes de borrarlas
+            $evaluaciones = DB::table('evaluacion_entrevista')
+                ->whereIn('id_postulacion', $postulaciones)
+                ->pluck('id_evaluacion');
 
-        // Eliminar detalles de evaluación
-        DB::table('detalle_evaluacion_entrevista')
-            ->whereIn('id_evaluacion', $evaluaciones)
-            ->delete();
+            // Eliminar detalles de evaluación
+            DB::table('detalle_evaluacion_entrevista')
+                ->whereIn('id_evaluacion', $evaluaciones)
+                ->delete();
 
-        // Eliminar evaluaciones de entrevista
-        DB::table('evaluacion_entrevista')
-            ->whereIn('id_postulacion', $postulaciones)
-            ->delete();
+            // Eliminar evaluaciones de entrevista
+            DB::table('evaluacion_entrevista')
+                ->whereIn('id_postulacion', $postulaciones)
+                ->delete();
 
-        // Eliminar postulaciones
-        DB::table('postulaciones')
-            ->where('id_vacante', $id)
-            ->delete();
+            // Eliminar postulaciones
+            DB::table('postulaciones')
+                ->where('id_vacante', $id)
+                ->delete();
 
-        // Eliminar requisitos
-        DB::table('requisitos_vacante')
-            ->where('id_vacante', $id)
-            ->delete();
+            // Eliminar requisitos
+            DB::table('requisitos_vacante')
+                ->where('id_vacante', $id)
+                ->delete();
 
-        // Eliminar vacante
-        $vacante->delete();
+            // Eliminar vacante
+            $vacante->delete();
 
-        DB::commit();
-        return response()->json(['ok' => true, 'mensaje' => 'Vacante eliminada correctamente.']);
+            DB::commit();
+            return response()->json(['ok' => true, 'mensaje' => 'Vacante eliminada correctamente.']);
 
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
+        }
     }
-}
 
 
 }

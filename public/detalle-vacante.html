@@ -54,6 +54,7 @@
           </div>
         </div>
         <div class="header-actions">
+          <button id="btnExportarPDF" class="btn btn-secondary">📄 Exportar PDF</button>
           <a id="btnEditar" href="#" class="btn btn-secondary">Editar vacante</a>
           <button id="btnCerrar" class="btn btn-danger">Cerrar vacante</button>
         </div>
@@ -67,16 +68,6 @@
 
       <div class="white-box">
         <h2>Ranking de postulantes</h2>
-        <div class="ranking-header">
-          <span>#</span>
-          <span>Candidato</span>
-          <span>Tipo</span>
-          <span>Puntaje automático</span>
-          <span>Puntaje entrevista</span>
-          <span>Puntaje final</span>
-          <span>Estatus</span>
-          <span>Acciones</span>
-        </div>
         <div id="v-ranking">
         </div>
       </div>
@@ -122,7 +113,7 @@
     </div>
   </div>
 
-  <script src="js/detalle-vacante.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="js/detalle-vacante.js"></script>
 </body>

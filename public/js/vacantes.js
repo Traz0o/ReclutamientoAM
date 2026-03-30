@@ -129,10 +129,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             </tr>`;
         }).join('');
 
-        // Abrir modal al hacer clic
+        // Abrir pantalla de detalle al hacer click en "Ver detalle"
         tbodyVacantes.querySelectorAll('.btn-ver-detalle').forEach(btn => {
-            btn.addEventListener('click', () => openModal(btn.dataset.id));
-        });
+    btn.addEventListener('click', () => {
+        window.location.href = `detalle-vacante.html?id=${btn.dataset.id}`;
+    });
+});
 
         tbodyVacantes.querySelectorAll('.btn-eliminar').forEach(btn => {
     btn.addEventListener('click', () => eliminarVacante(btn.dataset.id, btn.dataset.titulo));
