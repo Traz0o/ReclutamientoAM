@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\VacantesController;
 use App\Http\Controllers\Api\CatalogosController;
 use App\Http\Controllers\Api\EvaluacionesEntrevistaController;
 use App\Http\Controllers\Api\PostulacionesController;
+use App\Http\Controllers\Api\AuditoriaController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/login-empleado', [AuthController::class, 'loginEmpleado']);
@@ -18,7 +19,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    
+    Route::get('/auditoria/postulaciones', [AuditoriaController::class, 'postulaciones']);
+    Route::get('/auditoria/vacantes', [AuditoriaController::class, 'vacantes']);
     Route::get('/vacantes/resumen', [VacantesController::class, 'resumen']);
     Route::get('/alertas', [VacantesController::class, 'alertas']);
     Route::get('/vacantes/{id}/ranking', [VacantesController::class, 'ranking']);
@@ -37,7 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/postulaciones/interno', [PostulacionesController::class, 'storeInterno']);
     Route::get('/vacantes-elegibles', [VacantesController::class, 'vacantesElegibles']);
     Route::middleware('auth:sanctum,empleados')->group(function () {
-    Route::get('/vacantes-elegibles', [VacantesController::class, 'vacantesElegibles']);
+        Route::get('/vacantes-elegibles', [VacantesController::class, 'vacantesElegibles']);
     });
     Route::patch('/postulaciones/{id}/respuesta-empleado', [PostulacionesController::class, 'respuestaEmpleado']);
 
